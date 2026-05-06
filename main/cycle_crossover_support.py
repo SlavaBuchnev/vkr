@@ -64,8 +64,6 @@ def find_subset_sum(cycles, target):
         for s in range(target, length - 1, -1):
             if dp[s - length] is not None and dp[s] is None:
                 dp[s] = dp[s - length] + [idx]
-    if dp[target] is None:
-        return None
     return dp[target]
 
 def build_ans_from_cycles(p, cycles, selected_indices):

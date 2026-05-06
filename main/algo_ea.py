@@ -78,9 +78,9 @@ def evolutionary_algorithm(flow, dist, pop_size=100, gens=200,
 
         # Формирование нового поколения
         while len(new_pop) < pop_size:
-            contenders = random.sample(range(pop_size // 2), tourn_size)
+            contenders = random.sample(range(pop_size), tourn_size)
             p1_idx = min(contenders, key=lambda i: costs[i])
-            contenders = random.sample(range(pop_size // 2, pop_size), tourn_size)
+            contenders = random.sample(range(pop_size), tourn_size)
             p2_idx = min(contenders, key=lambda i: costs[i])
             parent1 = population[p1_idx]
             parent2 = population[p2_idx]
