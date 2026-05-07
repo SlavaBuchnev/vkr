@@ -21,7 +21,7 @@ python install.py
 ├── test/
 │   ├── run_tests_unit.py            # Запуск unit тестов
 │   ├── unit/                        # папка с unit тестами
-│   └──  integration/                # папка с integration тестами
+│   └── integration/                 # папка с integration тестами
 │
 ├── configs/                         # Папка с конфигурационными файлами
 │   ├── ea_results.csv               # Результаты
