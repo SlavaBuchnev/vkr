@@ -1,3 +1,5 @@
+import csv
+import time
 import unittest
 import os
 import glob
@@ -33,6 +35,7 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         cls.params = load_ea_params()
         cls.max_allowed_gap = 0.25  # только для справки, пока проверка не выполняется
         cls.results = []
+        cls.output_file = os.path.join(os.path.dirname(__file__),'..', '..','configs', 'ea_results.csv')
 
     def _run_test_for_instance(self, filepath, instance_name):
         n, F, D = load_qap_instance(filepath)
@@ -44,7 +47,9 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         random_perm = np.random.permutation(n)
         initial_cost = calculate_cost(random_perm, F, D)
 
+        start_time = time.time()
         best_perm, best_cost, history = evolutionary_algorithm(F, D, **self.params)
+        elapsed = time.time() - start_time
 
         gap = (best_cost - opt) / opt
 
@@ -60,10 +65,11 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         print(f"  Начальная стоимость:              {initial_cost}")
         print(f"  Лучшее найденное (BEST):          {best_cost}")
         print(f"                                    {" ".join(str(x + 1) for x in best_perm)}")
+        print(f"  Время выполнения:                 {elapsed:.2f} сек")
         print(f"  Отклонение:                       {color}{Colors.BOLD}{gap:.2%}{Colors.RESET}")
 
 
-        self.__class__.results.append((instance_name, gap, best_cost, opt))
+        self.__class__.results.append((instance_name, gap, best_cost, opt, best_perm, elapsed))
 
     @classmethod
     def tearDownClass(cls):
@@ -73,15 +79,38 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         print("СВОДКА ОТКЛОНЕНИЙ")
         print(f"{'Задача':<12} {'Отклонение':<12} {'Статус':<10}")
         print("-" * 70)
-        for inst, gap, best, opt in sorted(cls.results, key=lambda x: x[1], reverse=True):
+        csv_rows = []
+        for inst, gap, best, opt, best_perm, elapsed in sorted(cls.results, key=lambda x: x[1], reverse=True):
             if gap <= 0.1:
-                status = f"{Colors.GREEN}OK{Colors.RESET}"
+                status = f"OK"
             elif gap <= cls.max_allowed_gap:
-                status = f"{Colors.YELLOW}WARN{Colors.RESET}"
+                status = f"WARN"
             else:
-                status = f"{Colors.RED}FAIL{Colors.RESET}"
+                status = f"FAIL"
             print(f"{inst:<12} {gap:.2%}           {status}")
+
+            perm_str = ' '.join(str(x + 1) for x in best_perm)
+            row = {
+                "instance": inst,
+                "optimum": opt,
+                "found": best,
+                "gap": f"{gap:.4f}",
+                "status": status,
+                "best_perm": perm_str,
+                "time_sec": f"{elapsed:.2f}"
+            }
+            for k, v in cls.params.items():
+                    row[f"param_{k}"] = v
+            csv_rows.append(row)
         print("=" * 70)
+
+        base_fields = ["instance", "optimum", "found", "gap", "status", "best_perm", "time_sec"]
+        param_fields = [f"param_{k}" for k in cls.params.keys()]
+        fieldnames = base_fields + param_fields
+        with open(cls.output_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writerows(csv_rows)
+
 
 for _path in _DAT_FILES:
     _instance = os.path.splitext(os.path.basename(_path))[0]

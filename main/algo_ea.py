@@ -1,8 +1,8 @@
 import numpy as np
 import random
-
 from .manufacturing import calculate_cost
-from .cycle_crossover_support import *
+from .cycle_crossover_support import cycle_crossover_optimal
+
 
 def order_crossover(p1, p2):
     n = len(p1)
@@ -33,8 +33,8 @@ def local_search_2opt(individual, flow, dist, max_iter=100):
     iter_count = 0
     while improved and iter_count < max_iter:
         improved = False
-        for i in range(n-1):
-            for j in range(i+1, n):
+        for i in range(n - 1):
+            for j in range(i + 1, n):
                 new_perm = best_perm[:]
                 new_perm[i], new_perm[j] = new_perm[j], new_perm[i]
                 new_cost = calculate_cost(new_perm, flow, dist)
@@ -46,10 +46,97 @@ def local_search_2opt(individual, flow, dist, max_iter=100):
     return best_perm, best_cost
 
 
+def select_new_generation(population, costs, flow, dist,
+                          pop_size, elitism, cross_rate, mut_rate,
+                          tourn_size, strategy='generational',
+                          offspring_mult=2):
+    """
+    Формирует новое поколение согласно выбранной стратегии.
+    population: список особей (перестановок)
+    costs: список стоимостей особей
+    flow, dist: матрицы задачи QAP
+    остальные параметры – настройки эволюции
+    """
+    n = len(population)
+    if strategy == 'generational':
+        # Элитизм + потомки
+        sorted_idx = np.argsort(costs)
+        new_pop = [population[sorted_idx[i]][:] for i in range(elitism)]
+
+        while len(new_pop) < pop_size:
+            contenders = random.sample(range(n), tourn_size)
+            p1_idx = min(contenders, key=lambda i: costs[i])
+            contenders = random.sample(range(n), tourn_size)
+            p2_idx = min(contenders, key=lambda i: costs[i])
+            parent1 = population[p1_idx]
+            parent2 = population[p2_idx]
+
+            if random.random() < cross_rate:
+                child = cycle_crossover_optimal(parent1, parent2)
+            else:
+                child = parent1[:]
+            child = mutate_swap(child, mut_rate)
+            new_pop.append(child)
+        return new_pop
+
+    elif strategy == 'plus':
+        # (μ + λ): создаём λ=pop_size потомков, объединяем, выбираем лучших
+        sorted_idx = np.argsort(costs)
+        offspring = [population[sorted_idx[i]][:] for i in range(elitism)]
+
+        while len(offspring) < pop_size:
+            contenders = random.sample(range(n), tourn_size)
+            p1_idx = min(contenders, key=lambda i: costs[i])
+            contenders = random.sample(range(n), tourn_size)
+            p2_idx = min(contenders, key=lambda i: costs[i])
+            parent1 = population[p1_idx]
+            parent2 = population[p2_idx]
+
+            if random.random() < cross_rate:
+                child = cycle_crossover_optimal(parent1, parent2)
+            else:
+                child = parent1[:]
+            child = mutate_swap(child, mut_rate)
+            offspring.append(child)
+
+        combined = population + offspring
+        combined_costs = [calculate_cost(ind, flow, dist) for ind in combined]
+        sorted_combined = sorted(zip(combined, combined_costs), key=lambda x: x[1])
+        return [ind for ind, _ in sorted_combined[:pop_size]]
+
+    elif strategy == 'comma':
+        # (μ, λ): генерируем λ = offspring_mult*pop_size потомков, отбираем лучших из них
+        offspring_size = offspring_mult * pop_size
+        sorted_idx = np.argsort(costs)
+        offspring = [population[sorted_idx[i]][:] for i in range(elitism)]
+
+        while len(offspring) < offspring_size:
+            contenders = random.sample(range(n), tourn_size)
+            p1_idx = min(contenders, key=lambda i: costs[i])
+            contenders = random.sample(range(n), tourn_size)
+            p2_idx = min(contenders, key=lambda i: costs[i])
+            parent1 = population[p1_idx]
+            parent2 = population[p2_idx]
+
+            if random.random() < cross_rate:
+                child = cycle_crossover_optimal(parent1, parent2)
+            else:
+                child = parent1[:]
+            child = mutate_swap(child, mut_rate)
+            offspring.append(child)
+
+        offspring_costs = [calculate_cost(ind, flow, dist) for ind in offspring]
+        sorted_offspring = sorted(zip(offspring, offspring_costs), key=lambda x: x[1])
+        return [ind for ind, _ in sorted_offspring[:pop_size]]
+
+    else:
+        raise ValueError(f"Unknown strategy: {strategy}")
+
 
 def evolutionary_algorithm(flow, dist, pop_size=100, gens=200,
                            cross_rate=0.9, mut_rate=0.2, tourn_size=5,
                            elitism=2, use_local_search=False, ls_freq=10,
+                           strategy='generational', offspring_mult=2,
                            verbose=False):
     n = flow.shape[0]
     population = [list(np.random.permutation(n)) for _ in range(pop_size)]
@@ -65,37 +152,22 @@ def evolutionary_algorithm(flow, dist, pop_size=100, gens=200,
 
         best_cost_history.append(best_cost)
 
-        # Элитизм
-        sorted_idx = np.argsort(costs)
-        new_pop = [population[sorted_idx[i]][:] for i in range(elitism)]
-
-        # Локальный поиск для лучшей особи
+        # Локальный поиск для лучшей особи (опционально)
         if use_local_search and gen % ls_freq == 0 and gen > 0:
             improved_sol, improved_cost = local_search_2opt(best_sol, flow, dist)
             if improved_cost < best_cost:
                 population[best_idx] = improved_sol
                 costs[best_idx] = improved_cost
 
-        # Формирование нового поколения
-        while len(new_pop) < pop_size:
-            contenders = random.sample(range(pop_size), tourn_size)
-            p1_idx = min(contenders, key=lambda i: costs[i])
-            contenders = random.sample(range(pop_size), tourn_size)
-            p2_idx = min(contenders, key=lambda i: costs[i])
-            parent1 = population[p1_idx]
-            parent2 = population[p2_idx]
+        # Формирование нового поколения через отдельную функцию
+        population = select_new_generation(
+            population, costs, flow, dist,
+            pop_size, elitism, cross_rate, mut_rate,
+            tourn_size, strategy=strategy,
+            offspring_mult=offspring_mult
+        )
 
-            if random.random() < cross_rate:
-                # child = order_crossover(parent1, parent2)
-                child = cycle_crossover_optimal(parent1, parent2)
-            else:
-                child = parent1[:]
-
-            child = mutate_swap(child, mut_rate)
-            new_pop.append(child)
-
-        population = new_pop
-
+    # Финальный отбор лучшего решения
     final_costs = [calculate_cost(ind, flow, dist) for ind in population]
     best_idx = np.argmin(final_costs)
     best_sol = population[best_idx]
