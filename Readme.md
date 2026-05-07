@@ -24,6 +24,7 @@ python install.py
 │   └──  integration/                # папка с integration тестами
 │
 ├── configs/                         # Папка с конфигурационными файлами
+│   ├── ea_results.csv               # Результаты
 │   ├── opt_values.json              # Известные оптимальные значения для тестовых экземпляров
 │   └── ea_params.json               # Параметры эволюционного алгоритма
 │
