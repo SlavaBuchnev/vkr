@@ -1,9 +1,7 @@
 name: Build PDF
 
 on:
-  push:
-    branches:
-      - '**'  # Все ветки
+  workflow_dispatch:  # Только ручной запуск
 
 jobs:
   build:
