@@ -41,7 +41,7 @@ jobs:
           luaotfload-tool --update
 
       - name: Compile with Make
-        run: latex/make run
+        run: cd latex/;make run
 
       - name: Upload PDF as artifact
         uses: actions/upload-artifact@v4
