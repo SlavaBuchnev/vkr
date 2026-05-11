@@ -1,0 +1,52 @@
+name: Build PDF
+
+on:
+  push:
+    branches:
+      - '**'  # Все ветки
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies and fonts
+        run: |
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-luatex \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-lang-cyrillic \
+            cm-super \
+            ttf-mscorefonts-installer \
+            fonts-firacode \
+            python3-pygments
+
+          # Создаём символические ссылки для старых имён, используемых в опциях класса
+          cd /usr/share/fonts/truetype/msttcorefonts
+          sudo ln -sf Times_New_Roman.ttf times.ttf
+          sudo ln -sf Times_New_Roman_Bold.ttf timesbd.ttf
+          sudo ln -sf Times_New_Roman_Italic.ttf timesi.ttf
+          sudo ln -sf Times_New_Roman_Bold_Italic.ttf timesbi.ttf
+          sudo ln -sf Courier_New.ttf cour.ttf
+          sudo ln -sf Courier_New_Bold.ttf courbd.ttf
+          sudo ln -sf Courier_New_Italic.ttf couri.ttf
+          sudo ln -sf Courier_New_Bold_Italic.ttf courbi.ttf
+          sudo fc-cache -fv
+          luaotfload-tool --update
+
+      - name: Compile with Make
+        run: make run
+
+      - name: Upload PDF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: main.pdf

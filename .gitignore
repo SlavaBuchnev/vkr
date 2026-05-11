@@ -1,2 +1,11 @@
 .venv
 .idea
+.pytest_cache
+latex/_minted-main
+latex/*.aux
+latex/*.log
+latex/*.out
+latex/*.pdf
+latex/*.thm
+latex/*.doc
+latex/*.toc
