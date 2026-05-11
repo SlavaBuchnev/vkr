@@ -9,7 +9,11 @@
 
 python install.py
 ```
+## Разработка LaTeX
+```shell
 
+cd latex; make run
+```
 ## Структура проекта
 ```
 .
@@ -27,6 +31,8 @@ python install.py
 │   ├── ea_results.csv               # Результаты
 │   ├── opt_values.json              # Известные оптимальные значения для тестовых экземпляров
 │   └── ea_params.json               # Параметры эволюционного алгоритма
+│
+├── latex/                           # LaTeX
 │
 └── files/                           # папка с данными
 ```
