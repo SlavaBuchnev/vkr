@@ -1,5 +1,7 @@
 import numpy as np
 import random
+
+from .initialization import generate_initial_population_with_clustering_sa
 from .manufacturing import calculate_cost
 from .cycle_crossover_support import cycle_crossover_optimal
 
@@ -45,11 +47,19 @@ def local_search_2opt(individual, flow, dist, max_iter=100):
         iter_count += 1
     return best_perm, best_cost
 
+def start_position(init_method, n, pop_size, flow, dist):
+    if init_method == "random":
+        return [list(np.random.permutation(n)) for _ in range(pop_size)]
+    elif init_method == "clustering_sa":
+        return generate_initial_population_with_clustering_sa(flow, dist, pop_size, max_clusters=min(10, n), sa_iter=1000)
+    else:
+        raise ValueError(f"Unknown init_method: {init_method}")
+
 
 def select_new_generation(population, costs, flow, dist,
                           pop_size, elitism, cross_rate, mut_rate,
-                          tourn_size, strategy='generational',
-                          offspring_mult=2):
+                          tourn_size, strategy,
+                          offspring_mult = 2):
     """
     Формирует новое поколение согласно выбранной стратегии.
     population: список особей (перестановок)
@@ -133,14 +143,12 @@ def select_new_generation(population, costs, flow, dist,
         raise ValueError(f"Unknown strategy: {strategy}")
 
 
-def evolutionary_algorithm(flow, dist, pop_size=100, gens=200,
-                           cross_rate=0.9, mut_rate=0.2, tourn_size=5,
-                           elitism=2, use_local_search=False, ls_freq=10,
-                           strategy='generational', offspring_mult=2,
-                           verbose=False):
+def evolutionary_algorithm(flow, dist, pop_size, gens,
+                           cross_rate, mut_rate, tourn_size,
+                           elitism, use_local_search, ls_freq,
+                           strategy, init_method):
     n = flow.shape[0]
-    population = [list(np.random.permutation(n)) for _ in range(pop_size)]
-    costs = [calculate_cost(ind, flow, dist) for ind in population]
+    population = start_position(init_method, n, pop_size, flow, dist)
 
     best_cost_history = []
 
@@ -159,12 +167,11 @@ def evolutionary_algorithm(flow, dist, pop_size=100, gens=200,
                 population[best_idx] = improved_sol
                 costs[best_idx] = improved_cost
 
-        # Формирование нового поколения через отдельную функцию
+        # Формирование нового поколения
         population = select_new_generation(
             population, costs, flow, dist,
             pop_size, elitism, cross_rate, mut_rate,
             tourn_size, strategy=strategy,
-            offspring_mult=offspring_mult
         )
 
     # Финальный отбор лучшего решения

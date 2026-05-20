@@ -1,3 +1,5 @@
+import random
+
 def mul(a, b):
     """Композиция перестановок: c[i] = b[a[i]] (сначала a, затем b)."""
     n = len(a)
@@ -16,18 +18,20 @@ def solve(p, k):
   n = len(p)
   ind = set()
   ans = list(range(n))
-  for i in range(n):
-    if len(ind)>=k:
-      break
-    if i not in ind:
-      c_ind = i
-      # Заносим в множество индексы из цикла
-      while c_ind not in ind and len(ind)<k:
-        ans[c_ind] = p[c_ind]
-        ind.add(c_ind)
-        c_ind = p[c_ind]
-      if c_ind not in ind:
-        ans[c_ind]=i
+  indices = list(range(n))
+  random.shuffle(indices)
+  for i in indices:
+      if len(ind) >= k:
+          break
+      if i not in ind:
+          c_ind = i
+          # Заносим в множество индексы из цикла
+          while c_ind not in ind and len(ind) < k:
+              ans[c_ind] = p[c_ind]
+              ind.add(c_ind)
+              c_ind = p[c_ind]
+          if c_ind not in ind:
+              ans[c_ind] = i
   return ans
 
 def decompose_cycles(p):
@@ -82,6 +86,7 @@ def build_ans_from_cycles(p, cycles, selected_indices):
             ans[i] = p[i]
     return ans
 
+# доработать чтобы при 2 разных одинаковых экзмеплчров были разные особи
 def cycle_crossover_optimal(a, b):
     """
     Возвращает перестановку c, максимизирующую min(r(a,c), r(b,c)).

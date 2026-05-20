@@ -8,5 +8,5 @@
     "use_local_search": true,
     "ls_freq": 10,
     "strategy": "comma",
-    "verbose": true
+    "init_method":"clustering_sa"
 }
