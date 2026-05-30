@@ -82,7 +82,7 @@ def select_new_generation(population, costs, flow, dist,
             parent2 = population[p2_idx]
 
             if random.random() < cross_rate:
-                child = cycle_crossover_optimal(parent1, parent2)
+                child = cycle_crossover_optimal(parent1, parent2, flow, dist)
             else:
                 child = parent1[:]
             child = mutate_swap(child, mut_rate)
@@ -103,7 +103,7 @@ def select_new_generation(population, costs, flow, dist,
             parent2 = population[p2_idx]
 
             if random.random() < cross_rate:
-                child = cycle_crossover_optimal(parent1, parent2)
+                child = cycle_crossover_optimal(parent1, parent2, flow, dist)
             else:
                 child = parent1[:]
             child = mutate_swap(child, mut_rate)
@@ -129,7 +129,7 @@ def select_new_generation(population, costs, flow, dist,
             parent2 = population[p2_idx]
 
             if random.random() < cross_rate:
-                child = cycle_crossover_optimal(parent1, parent2)
+                child = cycle_crossover_optimal(parent1, parent2, flow, dist)
             else:
                 child = parent1[:]
             child = mutate_swap(child, mut_rate)

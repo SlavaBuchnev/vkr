@@ -4,9 +4,9 @@
     "cross_rate": 0.8,
     "mut_rate": 0.3,
     "tourn_size": 10,
-    "elitism": 1,
+    "elitism": 10,
     "use_local_search": true,
     "ls_freq": 10,
-    "strategy": "comma",
+    "strategy": "generational",
     "init_method":"clustering_sa"
 }
