@@ -9,3 +9,4 @@ latex/*.pdf
 latex/*.thm
 latex/*.doc
 latex/*.toc
+latex/*.pyg
