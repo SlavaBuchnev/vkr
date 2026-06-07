@@ -44,4 +44,16 @@ def load_opt_values() -> Dict[str, int]:
     return _common_load_json("configs/opt_values.json")
 
 def load_ea_params() -> Dict[str, Any]:
-    return _common_load_json("configs/ea_params.json")
+    params = _common_load_json("configs/ea_params.json")
+    pop_size = params['pop_size']
+    params['tourn_size'] = max(2, int(params.get('tourn_size', 2) * pop_size / 100))
+    params['elitism'] = max(0, int(params.get('elitism', 0) * pop_size / 100))
+    params['ls_freq'] = max(1, int(params.get('ls_freq', 1) * pop_size / 100))
+    return params
+
+def rewrite_ea_params(params:Dict[str, Any]) -> Dict[str, Any]:
+    pop_size = params['pop_size']
+    params['tourn_size'] = round(params['tourn_size'] / pop_size * 100, 2)
+    params['elitism'] = round(params['elitism'] / pop_size * 100, 2)
+    params['ls_freq'] = round(params['ls_freq'] / pop_size * 100, 2)
+    return params

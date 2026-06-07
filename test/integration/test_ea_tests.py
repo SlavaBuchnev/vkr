@@ -6,7 +6,7 @@ import glob
 import numpy as np
 
 from main.algo_ea import evolutionary_algorithm
-from main.manufacturing import load_qap_instance, load_opt_values, calculate_cost, load_ea_params
+from main.manufacturing import load_qap_instance, load_opt_values, calculate_cost, load_ea_params, rewrite_ea_params
 
 _TESTS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'files', 'qaplib', 'tests')
 
@@ -76,6 +76,7 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         """Выводит сводную таблицу после всех тестов."""
         if not cls.results:
             return
+        params = rewrite_ea_params(cls.params)
         print("СВОДКА ОТКЛОНЕНИЙ")
         print(f"{'Задача':<12} {'Отклонение':<12} {'Статус':<10}")
         print("-" * 70)
@@ -99,13 +100,13 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
                 "best_perm": perm_str,
                 "time_sec": f"{elapsed:.2f}"
             }
-            for k, v in cls.params.items():
+            for k, v in params.items():
                     row[f"param_{k}"] = v
             csv_rows.append(row)
         print("=" * 70)
 
         base_fields = ["instance", "optimum", "found", "gap", "status", "best_perm", "time_sec"]
-        param_fields = [f"param_{k}" for k in cls.params.keys()]
+        param_fields = [f"param_{k}" for k in params.keys()]
         fieldnames = base_fields + param_fields
         with open(cls.output_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
