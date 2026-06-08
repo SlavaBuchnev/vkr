@@ -110,6 +110,7 @@ class TestEvolutionaryAlgorithmFull(unittest.TestCase):
         fieldnames = base_fields + param_fields
         with open(cls.output_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
             writer.writerows(csv_rows)
 
 
