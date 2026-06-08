@@ -17,14 +17,19 @@ jobs:
       - name: Generate chunks
         id: generate
         run: |
-          python generate_chunks.py --output chunks.json 
-          # Проверяем, что чанки не пустые
+          python generate_chunks.py --output chunks.json
+          # Проверка на всякий случай
+          if [ ! -f chunks.json ]; then
+            echo "Error: chunks.json was not created" >&2
+            exit 1
+          fi
           CHUNKS_COUNT=$(jq length chunks.json)
           if [ "$CHUNKS_COUNT" -eq 0 ]; then
-            echo "Error: No chunks generated! Check generate_chunks.py." >&2
+            echo "Error: chunks.json is empty" >&2
             exit 1
           fi
           echo "Chunks count: $CHUNKS_COUNT" >> $GITHUB_STEP_SUMMARY
+          # Перезаписываем в GITHUB_OUTPUT, даже если скрипт уже записал (не повредит)
           echo "chunks=$(jq -c . chunks.json)" >> $GITHUB_OUTPUT
 
   run-chunks:

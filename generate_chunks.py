@@ -1,9 +1,9 @@
+import argparse
 import itertools
 import json
-import sys
 import os
+import sys
 
-# Параметры и их значения (полный перебор)
 PARAM_GRID = {
     "pop_size": [250],
     "gens": [50],
@@ -17,7 +17,6 @@ PARAM_GRID = {
     "init_method": ["clustering_sa"],
 }
 
-# Размер чанка (не более 256, но лучше 200, чтобы оставить запас)
 CHUNK_SIZE = 200
 
 def generate_all_combinations():
@@ -27,7 +26,6 @@ def generate_all_combinations():
         yield dict(zip(keys, combo))
 
 def chunks(lst, n):
-    """Разбивает список на куски по n элементов."""
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
@@ -39,14 +37,24 @@ def generate_chunks(chunk_size=CHUNK_SIZE):
     return chunks_list
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", default="chunks.json", help="Output JSON file")
+    args = parser.parse_args()
+
     chunks_data = generate_chunks()
-    # Если запущено в CI, выводим JSON в $GITHUB_OUTPUT
+
+    # Проверка, что чанки не пустые
+    if len(chunks_data) == 0:
+        print("Error: No chunks generated! Check parameter grid.", file=sys.stderr)
+        sys.exit(1)
+
+    # Всегда сохраняем JSON в файл
+    with open(args.output, "w") as f:
+        json.dump(chunks_data, f, indent=2)
+    print(f"Chunks saved to {args.output}", file=sys.stderr)
+
+    # Дополнительно пишем в GITHUB_OUTPUT для GitHub Actions
     github_output = os.getenv("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as f:
             f.write(f"chunks={json.dumps(chunks_data)}\n")
-    else:
-        # Локальный запуск: просто сохраняем в файл
-        with open("chunks.json", "w") as f:
-            json.dump(chunks_data, f, indent=2)
-        print("chunks.json saved")
