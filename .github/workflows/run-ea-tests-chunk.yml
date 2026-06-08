@@ -1,0 +1,77 @@
+name: Run EA Tests Chunk
+
+on:
+  workflow_call:
+    inputs:
+      items:
+        description: 'List of items to process'
+        required: true
+        type: string
+
+jobs:
+  run-items:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 10            # параллельность внутри одного чанка
+      fail-fast: false
+      matrix:
+        item: ${{ fromJson(inputs.items) }}
+    name: ${{ item.pop_size }}/${{ item.gens }}/${{ item.cross_rate }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+
+      - name: Generate configs/ea_params.json
+        run: |
+          mkdir -p configs
+          cat > configs/ea_params.json <<EOF
+          {
+            "pop_size": ${{ item.pop_size }},
+            "gens": ${{ item.gens }},
+            "cross_rate": ${{ item.cross_rate }},
+            "mut_rate": ${{ item.mut_rate }},
+            "tourn_size": ${{ item.tourn_size }},
+            "elitism": ${{ item.elitism }},
+            "use_local_search": ${{ item.use_local_search }},
+            "ls_freq": ${{ item.ls_freq }},
+            "strategy": "${{ item.strategy }}",
+            "init_method": "${{ item.init_method }}"
+          }
+          EOF
+          echo "Generated config:"
+          cat configs/ea_params.json
+
+      - name: Run test (writes configs/ea_results.csv)
+        run: pytest test/integration/test_ea_tests.py -v
+
+      - name: Rename results CSV with parameters
+        run: |
+          mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
+        env:
+          pop_size: ${{ item.pop_size }}
+          gens: ${{ item.gens }}
+          cross_rate: ${{ item.cross_rate }}
+          mut_rate: ${{ item.mut_rate }}
+
+      - name: Upload CSV artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ item.pop_size }}-${{ item.gens }}-${{ github.run_id }}
+          path: "results_*.csv"

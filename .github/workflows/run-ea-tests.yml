@@ -1,0 +1,106 @@
+name: Run EA Experiments with Matrix Extended
+
+on:
+  workflow_dispatch:  # ручной запуск
+
+jobs:
+  # --------------------------------------------------------------------------
+  # 1. Генерация полной матрицы параметров
+  # --------------------------------------------------------------------------
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix-extended.outputs.matrix }}
+    steps:
+      - name: Set up matrix data
+        id: setup
+        uses: druzsan/setup-matrix@v1
+        with:
+          matrix: |
+            pop_size: [250]
+            gens: [50]
+            cross_rate: [0.5]
+            mut_rate: [0.1]
+            tourn_size: [2]
+            elitism: [0]
+            use_local_search: [true, false]
+            ls_freq: [1]
+            strategy: ['generational']
+            init_method: ['clustering_sa']
+
+      - name: Matrix Extended (разбиваем на чанки)
+        id: matrix-extended
+        uses: cloudposse/github-action-matrix-extended@main
+        with:
+          matrix: ${{ steps.setup.outputs.matrix }}
+          group-by: '.pop_size'           # группируем по размеру популяции
+          nested-matrices-count: '2'      # создаём 2 уровня вложенности
+          chunk-size: '250'               # размер одного чанка (макс. 256)
+
+  # --------------------------------------------------------------------------
+  # 2. Запуск каждого чанка параллельно (reusable workflow)
+  # --------------------------------------------------------------------------
+  run-chunks:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5           # ограничение одновременных чанков (бесплатные раннеры)
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    name: Chunk ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+
+      - name: Call reusable workflow for items in chunk
+        uses: ./.github/workflows/run-ea-tests-chunk.yml
+        with:
+          items: ${{ toJson(matrix.items) }}
+
+  # --------------------------------------------------------------------------
+  # 3. Объединение всех результатов в один CSV
+  # --------------------------------------------------------------------------
+  merge-results:
+    needs: run-chunks
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install pandas
+        run: pip install pandas
+
+      - name: Download all artifacts (pattern result-*)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          merge-multiple: true
+          path: ./all_results
+
+      - name: List downloaded files (debug)
+        run: ls -la ./all_results
+
+      - name: Merge CSVs
+        run: python merge-csv.py
+        working-directory: ./all_results
+
+      - name: Upload final merged result
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-merged-results
+          path: ./all_results/combined_results.csv
+          retention-days: 90
