@@ -56,40 +56,40 @@ jobs:
           CHUNK_JSON: ${{ toJson(matrix.chunk) }}
         run: |
           echo "$CHUNK_JSON" | jq -c '.[]' | while read item; do
-            pop_size=$(echo "$item" | jq -r '.pop_size')
-            gens=$(echo "$item" | jq -r '.gens')
-            cross_rate=$(echo "$item" | jq -r '.cross_rate')
-            mut_rate=$(echo "$item" | jq -r '.mut_rate')
-            tourn_size=$(echo "$item" | jq -r '.tourn_size')
-            elitism=$(echo "$item" | jq -r '.elitism')
-            use_local_search=$(echo "$item" | jq -r '.use_local_search')
-            ls_freq=$(echo "$item" | jq -r '.ls_freq')
-            strategy=$(echo "$item" | jq -r '.strategy')
-            init_method=$(echo "$item" | jq -r '.init_method')
-            
-            mkdir -p configs
-            cat > configs/ea_params.json <<EOF
-            {
-              "pop_size": $pop_size,
-              "gens": $gens,
-              "cross_rate": $cross_rate,
-              "mut_rate": $mut_rate,
-              "tourn_size": $tourn_size,
-              "elitism": $elitism,
-              "use_local_search": $use_local_search,
-              "ls_freq": $ls_freq,
-              "strategy": "$strategy",
-              "init_method": "$init_method"
-            }
-            EOF
-            
-            pytest test/integration/test_ea_tests.py -v || true
-            
-            if [ -f configs/ea_results.csv ]; then
-              mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
-            else
-              echo "Warning: configs/ea_results.csv not found for $pop_size $gens"
-            fi
+          pop_size=$(echo "$item" | jq -r '.pop_size')
+          gens=$(echo "$item" | jq -r '.gens')
+          cross_rate=$(echo "$item" | jq -r '.cross_rate')
+          mut_rate=$(echo "$item" | jq -r '.mut_rate')
+          tourn_size=$(echo "$item" | jq -r '.tourn_size')
+          elitism=$(echo "$item" | jq -r '.elitism')
+          use_local_search=$(echo "$item" | jq -r '.use_local_search')
+          ls_freq=$(echo "$item" | jq -r '.ls_freq')
+          strategy=$(echo "$item" | jq -r '.strategy')
+          init_method=$(echo "$item" | jq -r '.init_method')
+
+          mkdir -p configs
+          cat > configs/ea_params.json <<EOF
+          {
+            "pop_size": $pop_size,
+            "gens": $gens,
+            "cross_rate": $cross_rate,
+            "mut_rate": $mut_rate,
+            "tourn_size": $tourn_size,
+            "elitism": $elitism,
+            "use_local_search": $use_local_search,
+            "ls_freq": $ls_freq,
+            "strategy": "$strategy",
+            "init_method": "$init_method"
+          }
+          EOF
+
+          pytest test/integration/test_ea_tests.py -v || true
+
+          if [ -f configs/ea_results.csv ]; then
+          mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
+          else
+          echo "Warning: configs/ea_results.csv not found for $pop_size $gens"
+          fi
           done
       - name: Upload all CSVs from this chunk
         uses: actions/upload-artifact@v4
