@@ -24,7 +24,6 @@ jobs:
 
   run-chunks:
     needs: generate-chunks
-    if: fromJson(needs.generate-chunks.outputs.chunks) != ''
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 10
