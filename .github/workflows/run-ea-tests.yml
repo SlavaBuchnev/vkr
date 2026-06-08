@@ -78,7 +78,7 @@ jobs:
 
           CHUNK_JSON=$(jq -c ".[$START:$END]" ./chunks_data/chunks.json)
 
-          echo "$CHUNK_JSON" | jq -c '.[]' | while read item; do
+          echo "$CHUNK_JSON" | jq -c '.[][]' | while read item; do
             pop_size=$(echo "$item" | jq -r '.pop_size')
             gens=$(echo "$item" | jq -r '.gens')
             cross_rate=$(echo "$item" | jq -r '.cross_rate')
@@ -91,7 +91,6 @@ jobs:
             init_method=$(echo "$item" | jq -r '.init_method')
 
             mkdir -p configs
-            # Создаём JSON без heredoc, используя jq
             jq -n \
               --argjson pop_size "$pop_size" \
               --argjson gens "$gens" \
@@ -118,7 +117,6 @@ jobs:
 
             pytest test/integration/test_ea_tests.py -v || true
 
-            # Уникальное имя файла со всеми параметрами
             FILENAME="results"
             FILENAME+="_pop${pop_size}"
             FILENAME+="_gen${gens}"
