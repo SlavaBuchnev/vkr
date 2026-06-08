@@ -17,7 +17,7 @@ jobs:
       - name: Generate chunks
         id: generate
         run: |
-          python generate_chunks.py
+          python generate_chunks.py --output chunks.json 
           # Проверяем, что чанки не пустые
           CHUNKS_COUNT=$(jq length chunks.json)
           if [ "$CHUNKS_COUNT" -eq 0 ]; then
