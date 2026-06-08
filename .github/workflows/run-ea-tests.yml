@@ -18,9 +18,14 @@ jobs:
         id: generate
         run: |
           python generate_chunks.py
-          echo "chunks=$(cat chunks.json | jq -c .)" >> $GITHUB_OUTPUT
-          # Отладка: проверим длину массива
-          echo "Chunks count: $(cat chunks.json | jq length)" >> $GITHUB_STEP_SUMMARY
+          # Проверяем, что чанки не пустые
+          CHUNKS_COUNT=$(jq length chunks.json)
+          if [ "$CHUNKS_COUNT" -eq 0 ]; then
+            echo "Error: No chunks generated! Check generate_chunks.py." >&2
+            exit 1
+          fi
+          echo "Chunks count: $CHUNKS_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "chunks=$(jq -c . chunks.json)" >> $GITHUB_OUTPUT
 
   run-chunks:
     needs: generate-chunks
@@ -89,7 +94,6 @@ jobs:
 
   merge-results:
     needs: run-chunks
-    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
