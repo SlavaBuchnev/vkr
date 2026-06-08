@@ -50,7 +50,7 @@ jobs:
     needs: generate-chunks
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 10
+      max-parallel: 20
       fail-fast: false
       matrix:
         batch: ${{ fromJson(needs.generate-chunks.outputs.batch_indices) }}
@@ -71,7 +71,7 @@ jobs:
       - name: Run batch of chunks
         env:
           BATCH_INDEX: ${{ matrix.batch }}
-          BATCH_SIZE: 50
+          BATCH_SIZE: 23
         run: |
           START=$(( BATCH_INDEX * BATCH_SIZE ))
           END=$(( START + BATCH_SIZE ))
