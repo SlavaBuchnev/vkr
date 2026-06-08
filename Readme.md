@@ -23,7 +23,7 @@
 Рекомендуется предварительно создать и активировать виртуальное окружение:
 ```shell
 
-python install.py
+pip install -r requirements.txt
 ```
 ## Разработка LaTeX
 ```shell

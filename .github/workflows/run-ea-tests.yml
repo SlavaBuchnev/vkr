@@ -48,9 +48,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pytest
+        run: pip install -r requirements.txt
+      - name: Verify installation
+        run: pip list
       - name: Run all items in this chunk sequentially
         env:
           CHUNK_JSON: ${{ toJson(matrix.chunk) }}

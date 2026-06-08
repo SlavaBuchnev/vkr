@@ -1,2 +1,4 @@
+-e .
 numpy>=1.21.0
 seaborn
+pytest
