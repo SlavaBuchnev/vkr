@@ -6,18 +6,18 @@ import sys
 
 PARAM_GRID = {
     "pop_size": [250, 500, 1000],
-    "gens": [50, 100, 150, 300],
-    "cross_rate": [0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1],
-    "mut_rate": [0.1, 0.2, 0.3, 0.35, 0.4, 0.45, 0.5],
-    "tourn_size": [1, 2, 5, 10, 20],
-    "elitism": [0, 1, 2, 5, 10, 25, 50],
+    "gens": [50, 100, 300],
+    "cross_rate": [0.5, 0.75, 1],
+    "mut_rate": [0.1, 0.3, 0.5],
+    "tourn_size": [1, 5, 20],
+    "elitism": [0, 25, 50],
     "use_local_search": [True, False],
-    "ls_freq": [1, 5, 10, 25],
+    "ls_freq": [1, 5, 10],
     "strategy": ["generational", "plus", "comma"],
     "init_method": ["random", "clustering_sa"],
 }
 
-CHUNK_SIZE = 200
+CHUNK_SIZE = 170
 
 def generate_all_combinations():
     keys = list(PARAM_GRID.keys())
