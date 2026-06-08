@@ -32,7 +32,7 @@ jobs:
           fi
           echo "Total chunks: $CHUNKS_COUNT" >> $GITHUB_STEP_SUMMARY
 
-          BATCH_SIZE=50   # количество чанков на одно задание матрицы
+          BATCH_SIZE=23   # количество чанков на одно задание матрицы
           NUM_BATCHES=$(( (CHUNKS_COUNT + BATCH_SIZE - 1) / BATCH_SIZE ))
           echo "Number of batches: $NUM_BATCHES" >> $GITHUB_STEP_SUMMARY
 
