@@ -86,7 +86,20 @@ jobs:
           pytest test/integration/test_ea_tests.py -v || true
 
           if [ -f configs/ea_results.csv ]; then
-          mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
+          FILENAME="results"
+          FILENAME+="_pop${pop_size}"
+          FILENAME+="_gen${gens}"
+          FILENAME+="_cr${cross_rate}"
+          FILENAME+="_mr${mut_rate}"
+          FILENAME+="_ts${tourn_size}"
+          FILENAME+="_el${elitism}"
+          FILENAME+="_ls${use_local_search}"
+          FILENAME+="_lsf${ls_freq}"
+          FILENAME+="_${strategy}"
+          FILENAME+="_${init_method}"
+          FILENAME+=".csv"
+          
+          mv configs/ea_results.csv "$FILENAME"
           else
           echo "Warning: configs/ea_results.csv not found for $pop_size $gens"
           fi
