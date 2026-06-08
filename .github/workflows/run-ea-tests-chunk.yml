@@ -12,7 +12,7 @@ jobs:
   run-items:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 10            # параллельность внутри одного чанка
+      max-parallel: 10
       fail-fast: false
       matrix:
         item: ${{ fromJson(inputs.items) }}
@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
