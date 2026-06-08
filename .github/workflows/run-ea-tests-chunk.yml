@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         item: ${{ fromJson(inputs.items) }}
-    name: ${{ item.pop_size }}/${{ item.gens }}/${{ item.cross_rate }}
+    name: ${{ matrix.item.pop_size }}/${{ matrix.item.gens }}/${{ matrix.item.cross_rate }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,16 +43,16 @@ jobs:
           mkdir -p configs
           cat > configs/ea_params.json <<EOF
           {
-            "pop_size": ${{ item.pop_size }},
-            "gens": ${{ item.gens }},
-            "cross_rate": ${{ item.cross_rate }},
-            "mut_rate": ${{ item.mut_rate }},
-            "tourn_size": ${{ item.tourn_size }},
-            "elitism": ${{ item.elitism }},
-            "use_local_search": ${{ item.use_local_search }},
-            "ls_freq": ${{ item.ls_freq }},
-            "strategy": "${{ item.strategy }}",
-            "init_method": "${{ item.init_method }}"
+            "pop_size": ${{ matrix.item.pop_size }},
+            "gens": ${{ matrix.item.gens }},
+            "cross_rate": ${{ matrix.item.cross_rate }},
+            "mut_rate": ${{ matrix.item.mut_rate }},
+            "tourn_size": ${{ matrix.item.tourn_size }},
+            "elitism": ${{ matrix.item.elitism }},
+            "use_local_search": ${{ matrix.item.use_local_search }},
+            "ls_freq": ${{ matrix.item.ls_freq }},
+            "strategy": "${{ matrix.item.strategy }}",
+            "init_method": "${{ matrix.item.init_method }}"
           }
           EOF
           echo "Generated config:"
@@ -65,13 +65,13 @@ jobs:
         run: |
           mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
         env:
-          pop_size: ${{ item.pop_size }}
-          gens: ${{ item.gens }}
-          cross_rate: ${{ item.cross_rate }}
-          mut_rate: ${{ item.mut_rate }}
+          pop_size: ${{ matrix.item.pop_size }}
+          gens: ${{ matrix.item.gens }}
+          cross_rate: ${{ matrix.item.cross_rate }}
+          mut_rate: ${{ matrix.item.mut_rate }}
 
       - name: Upload CSV artifact
         uses: actions/upload-artifact@v4
         with:
-          name: result-${{ item.pop_size }}-${{ item.gens }}-${{ github.run_id }}
+          name: result-${{ matrix.item.pop_size }}-${{ matrix.item.gens }}-${{ github.run_id }}
           path: "results_*.csv"
