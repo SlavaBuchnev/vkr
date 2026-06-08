@@ -19,9 +19,12 @@ jobs:
         run: |
           python generate_chunks.py
           echo "chunks=$(cat chunks.json | jq -c .)" >> $GITHUB_OUTPUT
+          # Отладка: проверим длину массива
+          echo "Chunks count: $(cat chunks.json | jq length)" >> $GITHUB_STEP_SUMMARY
 
   run-chunks:
     needs: generate-chunks
+    if: fromJson(needs.generate-chunks.outputs.chunks) != ''
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 10
@@ -71,9 +74,8 @@ jobs:
             }
             EOF
             
-            pytest test/integration/test_ea_tests.py -v || true   # не останавливаем цикл при ошибке
+            pytest test/integration/test_ea_tests.py -v || true
             
-            # Переименовываем, если файл существует
             if [ -f configs/ea_results.csv ]; then
               mv configs/ea_results.csv "results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}.csv"
             else
@@ -88,8 +90,8 @@ jobs:
 
   merge-results:
     needs: run-chunks
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
-    if: always()
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -104,8 +106,10 @@ jobs:
           pattern: results-chunk-*
           merge-multiple: true
           path: ./all_results
-      - name: Merge CSVs using existing script
-        run: python ../merge-csv.py
+      - name: Merge CSVs using merge-csv.py
+        run: |
+          cp ../merge-csv.py .
+          python merge-csv.py
         working-directory: ./all_results
       - name: Upload final CSV
         uses: actions/upload-artifact@v4
