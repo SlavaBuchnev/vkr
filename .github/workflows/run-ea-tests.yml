@@ -1,4 +1,4 @@
-name: Run EA Experiments (3 reusable matrices)
+name: Run EA Experiments
 
 on:
   workflow_dispatch:
