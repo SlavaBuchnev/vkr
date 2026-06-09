@@ -40,10 +40,9 @@ def generate_chunks_for_pop(pop_size, max_jobs=256):
     return list(chunks(combos, chunk_size))
 
 def build_matrix(pop_sizes, max_jobs=256):
-    """Создаёт список заданий для матрицы include и сохраняет чанки в JSON."""
+    """Создаёт полную матрицу include (для всех pop_size)."""
     all_chunks = {}
     matrix_include = []
-
     for pop in pop_sizes:
         ch_list = generate_chunks_for_pop(pop, max_jobs)
         all_chunks[str(pop)] = ch_list
@@ -52,31 +51,54 @@ def build_matrix(pop_sizes, max_jobs=256):
                 "pop_size": pop,
                 "batch": batch_idx
             })
-
     return all_chunks, matrix_include
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--chunks-file", default="all_chunks.json", help="File with all chunks per pop_size")
-    parser.add_argument("--matrix-file", default="matrix.json", help="Matrix include JSON for GitHub Actions")
-    parser.add_argument("--max-jobs", type=int, default=256, help="Max jobs per pop_size group")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # Подкоманда: single – для одного pop_size
+    single_parser = subparsers.add_parser("single", help="Generate chunks for a single pop_size")
+    single_parser.add_argument("--pop_size", type=int, required=True)
+    single_parser.add_argument("--output", required=True, help="Output JSON file for chunks")
+    single_parser.add_argument("--max_jobs", type=int, default=256)
+
+    # Подкоманда: full – для всех pop_size сразу (как раньше)
+    full_parser = subparsers.add_parser("full", help="Generate full matrix for all pop_size")
+    full_parser.add_argument("--chunks-file", default="all_chunks.json")
+    full_parser.add_argument("--matrix-file", default="matrix.json")
+    full_parser.add_argument("--max-jobs", type=int, default=256, dest="max_jobs")
+
     args = parser.parse_args()
 
-    pop_sizes = PARAM_GRID["pop_size"]
-    all_chunks, matrix_include = build_matrix(pop_sizes, args.max_jobs)
+    if args.command == "single":
+        pop_size = args.pop_size
+        max_jobs = args.max_jobs
+        chunks_list = generate_chunks_for_pop(pop_size, max_jobs)
+        if not chunks_list:
+            print(f"No combinations for pop_size={pop_size}", file=sys.stderr)
+            sys.exit(1)
+        with open(args.output, "w") as f:
+            json.dump(chunks_list, f, indent=2)
+        print(f"Chunks for pop_size={pop_size} saved to {args.output}", file=sys.stderr)
+        # Для GitHub Actions: выводим batch_indices в stdout как JSON
+        batch_indices = list(range(len(chunks_list)))
+        print(json.dumps(batch_indices))  # stdout пойдёт в ${{ steps.gen.outputs.batch_indices }}
+        # Дополнительно в GITHUB_OUTPUT
+        github_output = os.getenv("GITHUB_OUTPUT")
+        if github_output:
+            with open(github_output, "a") as f:
+                f.write(f"batch_indices={json.dumps(batch_indices)}\n")
 
-    # Сохраняем чанки
-    with open(args.chunks_file, "w") as f:
-        json.dump(all_chunks, f, indent=2)
-    print(f"Chunks saved to {args.chunks_file}", file=sys.stderr)
-
-    # Сохраняем матрицу
-    with open(args.matrix_file, "w") as f:
-        json.dump(matrix_include, f, indent=2)
-    print(f"Matrix include ({len(matrix_include)} jobs) saved to {args.matrix_file}", file=sys.stderr)
-
-    # Для GitHub Actions – выводим матрицу в GITHUB_OUTPUT
-    github_output = os.getenv("GITHUB_OUTPUT")
-    if github_output:
-        with open(github_output, "a") as f:
-            f.write(f"matrix_json={json.dumps(matrix_include)}\n")
+    elif args.command == "full":
+        pop_sizes = PARAM_GRID["pop_size"]
+        all_chunks, matrix_include = build_matrix(pop_sizes, args.max_jobs)
+        with open(args.chunks_file, "w") as f:
+            json.dump(all_chunks, f, indent=2)
+        with open(args.matrix_file, "w") as f:
+            json.dump(matrix_include, f, indent=2)
+        print(f"Full matrix saved: {args.chunks_file}, {args.matrix_file}", file=sys.stderr)
+        github_output = os.getenv("GITHUB_OUTPUT")
+        if github_output:
+            with open(github_output, "a") as f:
+                f.write(f"matrix_json={json.dumps(matrix_include)}\n")
