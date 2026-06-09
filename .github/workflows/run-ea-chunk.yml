@@ -1,0 +1,87 @@
+name: Run EA chunk (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      pop_size:
+        required: true
+        type: number
+      chunk_artifact_name:
+        required: true
+        type: string
+      max_jobs:
+        required: false
+        type: number
+        default: 256
+
+jobs:
+  # Генерация чанков для одного pop_size
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      batch_indices: ${{ steps.gen.outputs.batch_indices }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate chunks
+        id: gen
+        run: |
+          python generate_chunks.py \
+            --pop_size ${{ inputs.pop_size }} \
+            --output chunks.json \
+            --max_jobs ${{ inputs.max_jobs }}
+
+          CHUNKS_COUNT=$(jq length chunks.json)
+          NUM_BATCHES=$(( (CHUNKS_COUNT + 1 - 1) / 1 ))  # BATCH_SIZE=1
+          BATCH_INDICES=$(seq 0 $((NUM_BATCHES - 1)) | jq -R -s -c 'split("\n")[:-1] | map(tonumber)')
+          echo "batch_indices=$BATCH_INDICES" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.chunk_artifact_name }}
+          path: chunks.json
+
+  # Матричный запуск тестов
+  run:
+    needs: generate
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 20
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJson(needs.generate.outputs.batch_indices) }}
+    name: "pop=${{ inputs.pop_size }} batch=${{ matrix.batch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.chunk_artifact_name }}
+          path: ./chunks_data
+      - name: Run batch
+        env:
+          POP_SIZE: ${{ inputs.pop_size }}
+          BATCH_INDEX: ${{ matrix.batch }}
+        run: |
+          CHUNK=$(jq -c --argjson idx "$BATCH_INDEX" '.[$idx][]' ./chunks_data/chunks.json)
+          echo "$CHUNK" | jq -c '.' | while read item; do
+            # извлечение параметров и запуск – точно как раньше
+            pop_size=$(echo "$item" | jq -r '.pop_size')
+            # ... все остальные параметры ...
+            mkdir -p configs
+            jq -n ... > configs/ea_params.json
+            pytest test/integration/test_ea_tests.py -v || true
+            # переименование CSV
+            FILENAME="results_pop${pop_size}_..."
+            if [ -f configs/ea_results.csv ]; then
+              mv configs/ea_results.csv "$FILENAME"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-pop${{ inputs.pop_size }}-batch${{ matrix.batch }}
+          path: "results_*.csv"
