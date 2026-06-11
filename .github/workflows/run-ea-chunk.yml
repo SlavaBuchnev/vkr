@@ -1,0 +1,115 @@
+name: Run EA chunk
+
+on:
+  workflow_call:
+    inputs:
+      pop_size:
+        required: true
+        type: number
+      chunk_artifact_name:
+        required: true
+        type: string
+      max_jobs:
+        required: false
+        type: number
+        default: 256
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      batch_indices: ${{ steps.gen.outputs.batch_indices }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate chunks
+        id: gen
+        run: |
+          # Вызываем скрипт в режиме single, stdout -> batch_indices
+          BATCH_INDICES=$(python generate_chunks.py single \
+            --pop_size ${{ inputs.pop_size }} \
+            --output chunks.json \
+            --max_jobs ${{ inputs.max_jobs }})
+          echo "batch_indices=$BATCH_INDICES" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.chunk_artifact_name }}
+          path: chunks.json
+
+  run:
+    needs: generate
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 20
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJson(needs.generate.outputs.batch_indices) }}
+    name: "pop=${{ inputs.pop_size }} batch=${{ matrix.batch }}"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.chunk_artifact_name }}
+          path: ./chunks_data
+      - name: Run batch
+        env:
+          POP_SIZE: ${{ inputs.pop_size }}
+          BATCH_INDEX: ${{ matrix.batch }}
+        run: |
+          CHUNK=$(jq -c --argjson idx "$BATCH_INDEX" '.[$idx][]' ./chunks_data/chunks.json)
+          echo "$CHUNK" | jq -c '.' | while read item; do
+            pop_size=$(echo "$item" | jq -r '.pop_size')
+            gens=$(echo "$item" | jq -r '.gens')
+            cross_rate=$(echo "$item" | jq -r '.cross_rate')
+            mut_rate=$(echo "$item" | jq -r '.mut_rate')
+            tourn_size=$(echo "$item" | jq -r '.tourn_size')
+            elitism=$(echo "$item" | jq -r '.elitism')
+            use_local_search=$(echo "$item" | jq -r '.use_local_search')
+            ls_freq=$(echo "$item" | jq -r '.ls_freq')
+            strategy=$(echo "$item" | jq -r '.strategy')
+            init_method=$(echo "$item" | jq -r '.init_method')
+
+            mkdir -p configs
+            jq -n \
+              --argjson pop_size "$pop_size" \
+              --argjson gens "$gens" \
+              --argjson cross_rate "$cross_rate" \
+              --argjson mut_rate "$mut_rate" \
+              --argjson tourn_size "$tourn_size" \
+              --argjson elitism "$elitism" \
+              --argjson use_local_search "$use_local_search" \
+              --argjson ls_freq "$ls_freq" \
+              --arg strategy "$strategy" \
+              --arg init_method "$init_method" \
+              '{
+                pop_size: $pop_size,
+                gens: $gens,
+                cross_rate: $cross_rate,
+                mut_rate: $mut_rate,
+                tourn_size: $tourn_size,
+                elitism: $elitism,
+                use_local_search: $use_local_search,
+                ls_freq: $ls_freq,
+                strategy: $strategy,
+                init_method: $init_method
+              }' > configs/ea_params.json
+
+            pytest test/integration/test_ea_tests.py -v || true
+
+            FILENAME="results_pop${pop_size}_gen${gens}_cr${cross_rate}_mr${mut_rate}_ts${tourn_size}_el${elitism}_ls${use_local_search}_lsf${ls_freq}_${strategy}_${init_method}.csv"
+            if [ -f configs/ea_results.csv ]; then
+              mv configs/ea_results.csv "$FILENAME"
+            else
+              echo "Warning: configs/ea_results.csv not found"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-pop${{ inputs.pop_size }}-batch${{ matrix.batch }}
+          path: "results_*.csv"
