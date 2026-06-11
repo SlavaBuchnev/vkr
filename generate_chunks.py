@@ -17,7 +17,7 @@ PARAM_GRID = {
     "init_method": ["random", "clustering_sa"],
 }
 
-CHUNK_SIZE = 170
+CHUNK_SIZE = 103
 
 def generate_all_combinations():
     keys = list(PARAM_GRID.keys())
