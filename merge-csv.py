@@ -30,8 +30,8 @@ def merge_csv_files(artifacts_dir='files/csv'):
 
     if dataframes:
         combined = pd.concat(dataframes, ignore_index=True)
-        combined.to_csv('ea_results.csv', index=False)
-        print(f"Saved ea_results.csv with {len(combined)} rows")
+        combined.to_csv('combined_results.csv', index=False)
+        print(f"Saved combined_results.csv with {len(combined)} rows")
     else:
         print("No valid data to merge")
 
