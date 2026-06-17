@@ -26,7 +26,7 @@
 
 % \ExplSyntaxOn
 
-\LoadClass[fontsize=12pt]{scrreprt}
+\LoadClass[fontsize=14pt]{scrreprt}
 \RequirePackage{silence}
 \WarningFilter{biblatex}{Patching footnotes failed}
 
@@ -569,7 +569,7 @@ BoldItalicFont=FiraSans-BoldItalic.otf
 
 
 \if@loadgostseventhreetwo
-\geometry{paper=a4paper, includehead, left=2.5cm, right=1cm, top=0.8cm, bottom=3cm}
+\geometry{paper=a4paper, includehead, left=2.5cm, right=1.5cm, top=0.8cm, bottom=3cm}
 \let\headwidth=\textwidth
 \fi
 
