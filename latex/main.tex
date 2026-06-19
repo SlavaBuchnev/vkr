@@ -961,7 +961,6 @@ PARAM_GRID = {
     "strategy": ["generational", "plus", "comma"],
     "init_method": ["random", "clustering_sa"],
 }
-
 def generate_all_combinations(pop_size_filter=None):
     keys = list(PARAM_GRID.keys())
     values = list(PARAM_GRID.values())
@@ -970,11 +969,9 @@ def generate_all_combinations(pop_size_filter=None):
         if pop_size_filter is not None and d["pop_size"] != pop_size_filter:
             continue
         yield d
-
 def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
-
 def generate_chunks_for_pop(pop_size, max_jobs=256):
     combos = list(generate_all_combinations(pop_size))
     total = len(combos)
